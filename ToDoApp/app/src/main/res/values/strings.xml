@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">ToDoApp</string>
+    <string name="txt_username">username</string>
+    <string name="txt_title">title</string>
+</resources>

@@ -1,0 +1,573 @@
+﻿public void Register(View view){
+       String name = editName.getText().toString();
+       String password = editPassword.getText().toString();
+       DBHandler dbHandler = new DBHandler(this);
+       long inserted = dbHandler.registerUser(name,password);
+       Toast.makeText(this, Math.toIntExact(inserted), Toast.LENGTH_SHORT).show();
+   }
+
+
+   public void Login(View view){
+       String name = editName.getText().toString();
+       String password = editPassword.getText().toString();
+       if(name.equals("admin")){
+           Intent i = new Intent(this,AddMovie.class);
+           startActivity(i);
+       }else{
+           Intent i = new Intent(this,MovieList.class);
+       }
+       DBHandler dbHandler = new DBHandler(this);
+       boolean y = dbHandler.loginUser(name,password);
+       if (y) {
+           Intent i = new Intent(this,MovieList.class);
+           startActivity(i);
+
+
+       }else {
+           Toast.makeText(this, "Wrong credentials", Toast.LENGTH_SHORT).show();
+       }
+   }
+
+
+   public void AddMovie(View view) {
+       String name = movieName.getText().toString();
+       String year = movieYear.getText().toString();
+       DBHandler dbHandler = new DBHandler(this);
+       if (dbHandler.addMovie(name, year)) {
+           Toast.makeText(this, "Movie added", Toast.LENGTH_SHORT).show();
+       } else {
+           Toast.makeText(this, "Movie add failed", Toast.LENGTH_SHORT).show();
+       }
+   }
+}
+
+
+public void deleteUser(View view){
+   DBHelper dbHelper = new DBHelper(this);
+   String userName = editName.getText().toString();
+   if(userName.isEmpty()){
+       Toast.makeText(this,"empty",Toast.LENGTH_LONG).show();
+   }else{
+       dbHelper.deleteInfo(userName);
+       Toast.makeText(this,"deleted",Toast.LENGTH_LONG).show();
+   }
+}
+
+
+public void updateUser(View view){
+   DBHelper dbHelper = new DBHelper(this);
+   String userName = editName.getText().toString();
+   if(userName.isEmpty()){
+       Toast.makeText(this,"empty",Toast.LENGTH_LONG).show();
+   }else{
+       dbHelper.updateInfo(userName,"lololo");
+       Toast.makeText(this,"Updated",Toast.LENGTH_LONG).show();
+   }
+}
+
+
+/////////////////////BaseColumns////////////////////////////////////
+
+
+public class DatabaseMaster {
+   public DatabaseMaster() {
+   }
+
+
+   public static class Users implements BaseColumns {
+       public static final String TABLE_NAME = "users";
+       public static final String Usermame = "UserName";
+       public static final String Password = "Password";
+       public static final String UserType = "UserType";
+   }
+
+
+   public static class Movie implements BaseColumns {
+       public static final String TABLE_NAME = "movies";
+       public static final String name = "name";
+       public static final String Year = "Year";
+   }
+
+
+   public static class Comments implements BaseColumns {
+       public static final String TABLE_NAME = "comments";
+       public static final String name = "name";
+       public static final String rating = "rating";
+       public static final String comments = "comments";
+   }
+}
+
+
+///////////////////////////////////////////////////////////////////////////
+
+
+public class DBHandler extends SQLiteOpenHelper {
+
+
+   public DBHandler(@Nullable Context context) {
+       super(context, "DataBase.db", null, 1);
+   }
+
+
+
+
+   @Override
+   public void onCreate(SQLiteDatabase sqLiteDatabase) {
+       String SQL_CREATE_ENTRIES1 = "CREATE TABLE " + DatabaseMaster.Users.TABLE_NAME + " (" + DatabaseMaster.Users._ID + " INTEGER PRIMARY KEY," + DatabaseMaster.Users.Usermame + " TEXT," + DatabaseMaster.Users.Password + " INTEGER," + DatabaseMaster.Users.UserType + " TEXT)";
+       String SQL_CREATE_ENTRIES2 = "CREATE TABLE " + DatabaseMaster.Comments.TABLE_NAME + " (" + DatabaseMaster.Comments._ID + " INTEGER PRIMARY KEY," + DatabaseMaster.Comments.name + " TEXT," + DatabaseMaster.Comments.rating + " INTEGER," + DatabaseMaster.Comments.comments + " TEXT)";
+       String SQL_CREATE_ENTRIES3 = "CREATE TABLE " + DatabaseMaster.Movie.TABLE_NAME + " (" + DatabaseMaster.Movie._ID + " INTEGER PRIMARY KEY," + DatabaseMaster.Movie.name + " TEXT," + DatabaseMaster.Movie.Year + " INTEGER)";
+       sqLiteDatabase.execSQL(SQL_CREATE_ENTRIES1);
+       sqLiteDatabase.execSQL(SQL_CREATE_ENTRIES2);
+       sqLiteDatabase.execSQL(SQL_CREATE_ENTRIES3);
+   }
+
+
+   @Override
+   public void onUpgrade(SQLiteDatabase sqLiteDatabase, int i, int i1) {
+   }
+
+
+
+
+   public long registerUser(String name, String password) {
+       SQLiteDatabase db = getWritableDatabase();
+       ContentValues values = new ContentValues();
+       values.put(DatabaseMaster.Users.Usermame, name);
+       values.put(DatabaseMaster.Users.Password, password);
+       return db.insert(DatabaseMaster.Users.TABLE_NAME, null, values);
+   }
+
+
+public boolean loginUser(String name, String password) {
+   SQLiteDatabase db = getReadableDatabase();
+   List user = new ArrayList<>();
+   String selection = DatabaseMaster.Users.Usermame + "= ?";
+   String[] selectionArgs = {name};
+   String[] projection = {DatabaseMaster.Users._ID, DatabaseMaster.Users.Usermame, DatabaseMaster.Users.Password};
+   Cursor cursor1 = db.query(DatabaseMaster.Users.TABLE_NAME, projection, selection, selectionArgs, null, null, null);
+   while (cursor1.moveToNext()) {
+       String userName = cursor1.getString(cursor1.getColumnIndexOrThrow(DatabaseMaster.Users.Usermame));
+       String userPassword = cursor1.getString(cursor1.getColumnIndexOrThrow(DatabaseMaster.Users.Password));
+       user.add(userName + ":" + userPassword);
+   }
+   cursor1.close();
+   if (!(user.size() > 0)) {
+       return false;
+   }
+   String x = (String) user.get(0);
+   return (x.split(":")[1].equals(password));
+}
+
+
+
+
+   public boolean addMovie(String name, String year) {
+       SQLiteDatabase db = getWritableDatabase();
+       ContentValues values = new ContentValues();
+       values.put(DatabaseMaster.Movie.name, name);
+       values.put(DatabaseMaster.Movie.Year, Integer.parseInt(year));
+       long a = db.insert(DatabaseMaster.Movie.TABLE_NAME, null, values);
+       return a > 0;
+   }
+
+
+   public boolean insertComments(String name, int rating, String comment) {
+       SQLiteDatabase db = getWritableDatabase();
+       ContentValues values = new ContentValues();
+       values.put(DatabaseMaster.Comments.name, name);
+       values.put(DatabaseMaster.Comments.rating, rating);
+       values.put(DatabaseMaster.Comments.comments, comment);
+       long a = db.insert(DatabaseMaster.Comments.TABLE_NAME, null, values);
+       return a > 0;
+   }
+
+
+   public List viewMovies() {
+       SQLiteDatabase db = getReadableDatabase();
+       String[] projection = {
+               DatabaseMaster.Movie._ID,
+               DatabaseMaster.Movie.name,
+               DatabaseMaster.Movie.Year,
+       };
+       Cursor cursor = db.query(DatabaseMaster.Movie.TABLE_NAME, null, null, null, null, null, null);
+       List movies = new ArrayList<>();
+       while (cursor.moveToNext()) {
+           String name = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseMaster.Movie.name));
+           movies.add(name);
+       }
+       cursor.close();
+       return movies;
+   }
+
+
+   public List viewComments(String name) {
+       SQLiteDatabase db = getReadableDatabase();
+       String[] projection = {
+               DatabaseMaster.Comments._ID,
+               DatabaseMaster.Comments.name,
+               DatabaseMaster.Comments.rating,
+               DatabaseMaster.Comments.comments,
+       };
+       Cursor cursor = db.query(DatabaseMaster.Comments.TABLE_NAME, projection, "name LIKE " + "'%" + name + "%'", null, null, null, null);
+       List comments = new ArrayList<>();
+       while (cursor.moveToNext()) {
+           int rate = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseMaster.Comments.rating));
+           String comment = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseMaster.Comments.comments));
+
+
+           comments.add(rate + ":" + comment);
+
+
+       }
+       cursor.close();
+       return comments;
+   }
+}
+
+
+public void deleteInfo(String userName){
+   SQLiteDatabase db = getReadableDatabase();
+   String selection = UsersMaster.Users.COLUMN_NAME_USERNAME + " Like ?";
+   String[] StringArgs = {userName};
+   db.delete(UsersMaster.Users.TABLE_NAME,selection,StringArgs);
+}
+
+
+public void updateInfo(String userName,String password) {
+   SQLiteDatabase db = getReadableDatabase();
+   ContentValues values = new ContentValues();
+   values.put(UsersMaster.Users.COLUMN_NAME_PASSWORD,password);
+   String selection = UsersMaster.Users.COLUMN_NAME_USERNAME + " LIKE ?";
+   String[] selectionArgs = {userName};
+   int count = db.update(UsersMaster.Users.TABLE_NAME,values,selection,selectionArgs);
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+
+
+public class MovieList extends AppCompatActivity implements AdapterView.OnItemClickListener {
+   ListView movieListView;
+   List y;
+
+
+   @Override
+   protected void onCreate(Bundle savedInstanceState) {
+       super.onCreate(savedInstanceState);
+       setContentView(R.layout.activity_movie_list);
+       movieListView = findViewById(R.id.movieListView);
+
+
+       DBHandler dbHandler = new DBHandler(this);
+       y = dbHandler.viewMovies();
+
+
+       ArrayAdapter movieAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, y);
+       movieListView.setAdapter(movieAdapter);
+       movieListView.setOnItemClickListener(this);
+
+
+   }
+
+
+   public void onItemClick(AdapterView<?> l, View v, int position, long id) {
+       Log.i("HelloListView", "You clicked Item: " + id + " at position:" + position);
+       // Then you start a new Activity via Intent
+       Intent intent = new Intent();
+       intent.setClass(this, MovieOverview.class);
+       intent.putExtra("position", position);
+       // Or / And
+       intent.putExtra("moviename", y.get(position).toString());
+       startActivity(intent);
+   }
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+
+
+public class MovieOverview extends AppCompatActivity {
+   EditText editComment;
+   TextView movieName;
+   TextView currentRating;
+   SeekBar editRating;
+   String moviename;
+   ListView commentListView;
+   List y;
+
+
+   @Override
+   protected void onCreate(Bundle savedInstanceState) {
+       super.onCreate(savedInstanceState);
+       setContentView(R.layout.activity_movie_overview);
+       editComment = findViewById(R.id.editComment);
+       editRating = findViewById(R.id.movieRatingSeek);
+       movieName = findViewById(R.id.MovieName);
+       currentRating = findViewById(R.id.currentRating);
+
+
+       Intent intent = getIntent();
+       moviename = intent.getStringExtra("moviename");
+       movieName.setText(moviename);
+
+
+       commentListView = findViewById(R.id.commentListView);
+       DBHandler dbHandler = new DBHandler(this);
+       y = dbHandler.viewComments(moviename);
+       ArrayAdapter commentAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, y);
+       commentListView.setAdapter(commentAdapter);
+
+
+       double ratings = 0;
+       for (int i = 0; i < y.size(); i++) {
+           ratings += Integer.parseInt(y.get(i).toString().split(":")[0]);
+       }
+       if (y.size() > 0) {
+           ratings /= y.size();
+       }
+       currentRating.setText(String.valueOf(ratings));
+   }
+
+
+
+
+   public void insertComment(View view) {
+       String comment = editComment.getText().toString();
+       int rating = editRating.getProgress();
+       DBHandler dbHandler = new DBHandler(this);
+       boolean success = dbHandler.insertComments(moviename, rating, comment);
+       if (success) {
+           Toast.makeText(this, "Successfully commented", Toast.LENGTH_SHORT).show();
+       } else {
+           Toast.makeText(this, "Failed to comment", Toast.LENGTH_SHORT).show();
+       }
+   }
+}
+
+
+///////////////////////////Camera////////////////////////////
+
+
+<uses-feature
+   android:name="android.hardware.camera"
+   android:required="true"/>
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+
+
+imageView = (ImageView) this.findViewById(R.id.imageView1);
+Button photoButoton = (Button) this.findViewById(R.id.Button1);
+photoButoton.setOnClickListener(new View.OnClickListener() {
+   @Override
+   public void onClick(View v) {
+       Intent cameraIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
+       startActivityForResult(cameraIntent,CAMERA_REQUEST);
+   }
+});
+
+
+@Override
+protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+   super.onActivityResult(requestCode, resultCode, data);
+   if(requestCode==CAMERA_REQUEST){
+       Bitmap photo = (Bitmap) data.getExtras().get("data");
+       imageView.setImageBitmap(photo);
+   }
+}
+
+
+///////////////////////////Spinners///////////////////////////////////////
+
+
+<Spinner
+    android:id="@+id/planets_spinner"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content" />
+
+
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="planets_array">
+        <item>Mercury</item>
+        <item>Venus</item>
+        <item>Earth</item>
+        <item>Mars</item>
+        <item>Jupiter</item>
+        <item>Saturn</item>
+        <item>Uranus</item>
+        <item>Neptune</item>
+    </string-array>
+</resources>
+
+
+Spinner spinner = (Spinner) findViewById(R.id.spinner);
+// Create an ArrayAdapter using the string array and a default spinner layout
+ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
+        R.array.planets_array, android.R.layout.simple_spinner_item);
+// Specify the layout to use when the list of choices appears
+adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+// Apply the adapter to the spinner
+spinner.setAdapter(adapter);
+
+
+public class SpinnerActivity extends Activity implements OnItemSelectedListener {
+    ...
+
+
+    public void onItemSelected(AdapterView<?> parent, View view,
+            int pos, long id) {
+        // An item was selected. You can retrieve the selected item using
+        // parent.getItemAtPosition(pos)
+    }
+
+
+    public void onNothingSelected(AdapterView<?> parent) {
+        // Another interface callback
+    }
+}
+
+
+Spinner spinner = (Spinner) findViewById(R.id.spinner);
+spinner.setOnItemSelectedListener(this);
+
+
+//////////////////////////////////Model///////////////////////////////////////////////
+
+
+public class Artist {
+
+
+   private int id;
+   private String name;
+
+
+   public Artist() {
+   }
+
+
+   public Artist(int id, String name) {
+       this.id = id;
+       this.name = name;
+   }
+
+
+   public int getId() {
+       return id;
+   }
+
+
+   public void setId(int id) {
+       this.id = id;
+   }
+
+
+   public String getName() {
+       return name;
+   }
+
+
+   public void setName(String name) {
+       this.name = name;
+   }
+}
+
+
+/////////////////////////checkBox////////////////////////////////////
+
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent">
+    <CheckBox android:id="@+id/checkbox_meat"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/meat"
+        android:onClick="onCheckboxClicked"/>
+    <CheckBox android:id="@+id/checkbox_cheese"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/cheese"
+        android:onClick="onCheckboxClicked"/>
+</LinearLayout>
+
+
+public void onCheckboxClicked(View view) {
+    // Is the view now checked?
+    boolean checked = ((CheckBox) view).isChecked();
+
+
+    // Check which checkbox was clicked
+    switch(view.getId()) {
+        case R.id.checkbox_meat:
+            if (checked)
+                // Put some meat on the sandwich
+            else
+                // Remove the meat
+            break;
+        case R.id.checkbox_cheese:
+            if (checked)
+                // Cheese me
+            else
+                // I'm lactose intolerant
+            break;
+        // TODO: Veggie sandwich
+    }
+}
+
+
+//////////////////////////Image///////////////////////////////////////
+
+
+byte[] img = getImageByteArray();
+dbHandler.addPhotos(img);
+
+
+private Bitmap getBitmapFromUri(Uri uri) throws IOException {
+   ParcelFileDescriptor parcelFileDescriptor = getContentResolver().openFileDescriptor(uri, "r");
+   FileDescriptor fileDescriptor = parcelFileDescriptor.getFileDescriptor();
+   Bitmap image = BitmapFactory.decodeFileDescriptor(fileDescriptor);
+   parcelFileDescriptor.close();
+   return image;
+}
+
+
+// this will convert the bitmap image into a byte[], because we cannot directly save bitmap in SQLITE
+private byte[] getImageByteArray(){
+   ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+   image.compress(Bitmap.CompressFormat.PNG, 0, outputStream);
+   return outputStream.toByteArray();
+}
+
+
+///////////////////////DilogBox////////////////////////////////////
+
+
+DialogFragment newFragment = new StartGameDialogFragment();
+newFragment.show(getSupportFragmentManager(), "game");
+
+
+
+
+public class StartGameDialogFragment extends DialogFragment {
+    @Override
+    public Dialog onCreateDialog(Bundle savedInstanceState) {
+        // Use the Builder class for convenient dialog construction
+        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+        builder.setMessage(R.string.dialog_start_game)
+               .setPositiveButton(R.string.start, new DialogInterface.OnClickListener() {
+                   public void onClick(DialogInterface dialog, int id) {
+                       // START THE GAME!
+                   }
+               })
+               .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+                   public void onClick(DialogInterface dialog, int id) {
+                       // User cancelled the dialog
+                   }
+               });
+        // Create the AlertDialog object and return it
+        return builder.create();
+    }
+}
+
+
+////////////////////////////////////////////////////////
